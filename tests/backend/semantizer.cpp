@@ -605,7 +605,12 @@ TEST(Semantizer, can_insert_type_conversion_in_multiple_return_statements) {
 }
 
 TEST(Semantizer, can_insert_type_conversion_in_if_statement) {
-    StringVec source = {"def main() -> None:", "    y: float", "    if y > 1:", "        y = 6"};
+    StringVec source = {
+        "def main() -> None:", 
+        "    y: float", 
+        "    if y > 1:", 
+        "        y = 6"
+    };
     TokenList token_list = Lexer::process(source);
     SyntaxTree tree = Parser::process(token_list);
     Semantizer::process(tree);
@@ -739,6 +744,60 @@ TEST(Semantizer, can_insert_type_conversion_in_elif_statement) {
                            "              BinaryOperation: Assign\n"
                            "                VariableName: x\n"
                            "                IntegerLiteralValue: 3\n";
+    ASSERT_EQ(tree_str, tree.dump());
+}
+
+TEST(Semantizer, insert_type_conversion_to_bool_type) {
+     StringVec source = {
+        "def main() -> None:", 
+        "    y: bool = True or 0"
+    };
+    TokenList token_list = Lexer::process(source);
+    SyntaxTree tree = Parser::process(token_list);
+    Semantizer::process(tree);
+    std::string tree_str = 
+    "ProgramRoot\n"
+    "  FunctionDefinition\n"
+    "    FunctionName: main\n"
+    "    FunctionArguments\n"
+    "    FunctionReturnType: NoneType\n"
+    "    BranchRoot: y:BoolType\n"
+    "      VariableDeclaration\n"
+    "        TypeName: BoolType\n"
+    "        VariableName: y\n"
+    "        Expression: BoolType\n"
+    "          BinaryOperation: Or\n"
+    "            BooleanLiteralValue: True\n"
+    "            TypeConversion\n"
+    "              TypeName: BoolType\n"
+    "              IntegerLiteralValue: 0\n";
+    ASSERT_EQ(tree_str, tree.dump());
+}
+
+TEST(Semantizer, insert_type_conversion_from_bool_type) {
+     StringVec source = {
+        "def main() -> None:", 
+        "    y: int = True + 0"
+    };
+    TokenList token_list = Lexer::process(source);
+    SyntaxTree tree = Parser::process(token_list);
+    Semantizer::process(tree);
+    std::string tree_str = 
+    "ProgramRoot\n"
+    "  FunctionDefinition\n"
+    "    FunctionName: main\n"
+    "    FunctionArguments\n"
+    "    FunctionReturnType: NoneType\n"
+    "    BranchRoot: y:IntType\n"
+    "      VariableDeclaration\n"
+    "        TypeName: IntType\n"
+    "        VariableName: y\n"
+    "        Expression: IntType\n"
+    "          BinaryOperation: Add\n"
+    "            TypeConversion\n"
+    "              TypeName: IntType\n"
+    "              BooleanLiteralValue: True\n"
+    "            IntegerLiteralValue: 0\n";
     ASSERT_EQ(tree_str, tree.dump());
 }
 
