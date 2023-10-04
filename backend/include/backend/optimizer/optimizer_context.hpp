@@ -14,7 +14,7 @@
 
 namespace optimizer {
 
-using VariableValue = std::variant<long int, double>;
+using VariableValue = std::variant<long int, double, bool>;
 
 struct OptimizerContext {
     std::forward_list<ast::VariablesTable *> variables;

@@ -622,8 +622,13 @@ TEST(Optimizer, can_remove_inaccessible_code_after_infinite_loop) {
 }
 
 TEST(Optimizer, can_insert_inline_function) {
-    StringVec source = {"def foo(x: int, y: int, z: int) -> int:", "    return x + y",
-                        "def main() -> None:", "    x: int = 2", "    x = foo(x + 1, 1, 3) + foo(1, 1, 1)"};
+    StringVec source = {
+        "def foo(x: int, y: int, z: int) -> int:",
+        "    return x + y",
+        "def main() -> None:",
+        "    x: int = 2",
+        "    x = foo(x + 1, 1, 3) + foo(1, 1, 1)"
+    };
     TokenList token_list = Lexer::process(source);
     SyntaxTree tree = Parser::process(token_list);
     Semantizer::process(tree);
@@ -852,3 +857,100 @@ TEST(Optimizer, dont_remove_overriden_variable) {
                            "              FloatingPointLiteralValue: 2\n";
     ASSERT_EQ(tree_str, tree.dump());
 }
+
+TEST(Optimizer, bool_constant_folding) {
+    StringVec source = {
+        "def main() -> None:", 
+        "    x: bool = True or False",
+        "    y: bool = True and False",
+        "    if True:",
+        "        x = False",
+        "        y = False",
+
+    };
+    TokenList token_list = Lexer::process(source);
+    SyntaxTree tree = Parser::process(token_list);
+    Semantizer::process(tree);
+    Optimizer::process(tree);
+    std::string tree_str = 
+        "ProgramRoot\n"
+        "  FunctionDefinition\n"
+        "    FunctionName: main\n"
+        "    FunctionArguments\n"
+        "    FunctionReturnType: NoneType\n"
+        "    BranchRoot: x:BoolType y:BoolType\n"
+        "      VariableDeclaration\n"
+        "        TypeName: BoolType\n"
+        "        VariableName: x\n"
+        "        Expression: BoolType\n"
+        "          BooleanLiteralValue: True\n"
+        "      VariableDeclaration\n"
+        "        TypeName: BoolType\n"
+        "        VariableName: y\n"
+        "        Expression: BoolType\n"
+        "          BooleanLiteralValue: False\n"
+        "      BranchRoot:\n"
+        "        Expression: BoolType\n"
+        "          BinaryOperation: Assign\n"
+        "            VariableName: x\n"
+        "            BooleanLiteralValue: False\n"
+        "        Expression: BoolType\n"
+        "          BinaryOperation: Assign\n"
+        "            VariableName: y\n"
+        "            BooleanLiteralValue: False\n";
+    ASSERT_EQ(tree_str, tree.dump());
+}
+
+TEST(Optimizer, bool_constant_propagation) { // TODO add test like this test for other types
+    StringVec source = {
+        "def main() -> None:", 
+        "    x: bool = True",
+        "    y: bool = False",
+        "    x = x and y",
+        "    y = x or y",
+        "    if True:",
+        "        z: bool = x and y",
+        "        z = x or y",
+    };
+    TokenList token_list = Lexer::process(source);
+    SyntaxTree tree = Parser::process(token_list);
+    Semantizer::process(tree);
+    Optimizer::process(tree);
+    std::string tree_str = 
+        "ProgramRoot\n"
+        "  FunctionDefinition\n"
+        "    FunctionName: main\n"
+        "    FunctionArguments\n"
+        "    FunctionReturnType: NoneType\n"
+        "    BranchRoot: x:BoolType y:BoolType\n"
+        "      VariableDeclaration\n"
+        "        TypeName: BoolType\n"
+        "        VariableName: x\n"
+        "        Expression: BoolType\n"
+        "          BooleanLiteralValue: True\n"
+        "      VariableDeclaration\n"
+        "        TypeName: BoolType\n"
+        "        VariableName: y\n"
+        "        Expression: BoolType\n"
+        "          BooleanLiteralValue: False\n"
+        "      Expression: BoolType\n"
+        "        BinaryOperation: Assign\n"
+        "          VariableName: x\n"
+        "          BooleanLiteralValue: False\n"
+        "      Expression: BoolType\n"
+        "        BinaryOperation: Assign\n"
+        "          VariableName: y\n"
+        "          BooleanLiteralValue: False\n"
+        "      BranchRoot: z:BoolType\n"
+        "        VariableDeclaration\n"
+        "          TypeName: BoolType\n"
+        "          VariableName: z\n"
+        "          Expression: BoolType\n"
+        "            BooleanLiteralValue: False\n"
+        "        Expression: BoolType\n"
+        "          BinaryOperation: Assign\n"
+        "            VariableName: z\n"
+        "            BooleanLiteralValue: False\n";
+    ASSERT_EQ(tree_str, tree.dump());
+}
+

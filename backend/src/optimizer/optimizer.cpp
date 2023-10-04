@@ -15,6 +15,7 @@ bool isLiteral(const Node::Ptr &node) {
     case NodeType::IntegerLiteralValue:
     case NodeType::FloatingPointLiteralValue:
     case NodeType::StringLiteralValue:
+    case NodeType::BooleanLiteralValue:
         return true;
     }
     return false;
@@ -40,16 +41,32 @@ bool isNonZeroFloatLiteral(const Node::Ptr &node) {
     return node->type == NodeType::FloatingPointLiteralValue && node->fpNum() != 0.0;
 }
 
+bool isTrueLiteral(const Node::Ptr &node) {
+    return node->type == NodeType::BooleanLiteralValue && node->boolean();
+}
+
+bool isFalseLiteral(const Node::Ptr &node) {
+    return node->type == NodeType::BooleanLiteralValue && !node->boolean();
+}
+
 bool isTruthyLiteral(const Node::Ptr &node) {
-    return isNonZeroIntLiteral(node) || isNonZeroFloatLiteral(node);
+    return isNonZeroIntLiteral(node) || isNonZeroFloatLiteral(node) || isTrueLiteral(node);
 }
 
 bool isFalsyLiteral(const Node::Ptr &node) {
-    return isZeroIntLiteral(node) || isZeroFloatLiteral(node);
+    return isZeroIntLiteral(node) || isZeroFloatLiteral(node) || isFalseLiteral(node);
 }
 
 bool isNumericLiteral(const Node::Ptr &node) {
     return node->type == NodeType::IntegerLiteralValue || node->type == NodeType::FloatingPointLiteralValue;
+}
+
+bool isBooleanLiteral(const Node::Ptr &node) {
+    return node->type == NodeType::BooleanLiteralValue;
+}
+
+bool isConstantLiteral(const Node::Ptr &node) {
+    return isBooleanLiteral(node) || isNumericLiteral(node);
 }
 
 bool isModifiedVariable(const Node::Ptr &node, OptimizerContext &ctx) {
@@ -73,6 +90,10 @@ bool canBeConstantFloat(const Node::Ptr &node, OptimizerContext &ctx) {
     return node->type == NodeType::FloatingPointLiteralValue || isVariableWithType(node, BuiltInTypes::FloatType, ctx);
 }
 
+bool canBeConstantBool(const Node::Ptr &node, OptimizerContext &ctx) {
+    return node->type == NodeType::BooleanLiteralValue || isVariableWithType(node, BuiltInTypes::BoolType, ctx);
+}
+
 } // namespace
 
 long int calculateIntOperation(Node::Ptr &first, Node::Ptr &second, BinaryOperation operation, OptimizerContext &ctx) {
@@ -82,30 +103,30 @@ long int calculateIntOperation(Node::Ptr &first, Node::Ptr &second, BinaryOperat
                                                           : second->intNum();
 
     switch (operation) {
-    case BinaryOperation::Add:
-        return lhs + rhs;
-    case BinaryOperation::Sub:
-        return lhs - rhs;
-    case BinaryOperation::Mult:
-        return lhs * rhs;
-    case BinaryOperation::Div:
-        return lhs / rhs;
-    case BinaryOperation::Equal:
-        return lhs == rhs;
-    case BinaryOperation::And:
-        return lhs && rhs;
-    case BinaryOperation::Or:
-        return lhs || rhs;
-    case BinaryOperation::Greater:
-        return lhs > rhs;
-    case BinaryOperation::GreaterEqual:
-        return lhs >= rhs;
-    case BinaryOperation::Less:
-        return lhs < rhs;
-    case BinaryOperation::LessEqual:
-        return lhs <= rhs;
-    case BinaryOperation::NotEqual:
-        return lhs != rhs;
+        case BinaryOperation::Add:
+            return lhs + rhs;
+        case BinaryOperation::Sub:
+            return lhs - rhs;
+        case BinaryOperation::Mult:
+            return lhs * rhs;
+        case BinaryOperation::Div:
+            return lhs / rhs;
+        case BinaryOperation::Equal:
+            return lhs == rhs;
+        case BinaryOperation::And:
+            return lhs && rhs;
+        case BinaryOperation::Or:
+            return lhs || rhs;
+        case BinaryOperation::Greater:
+            return lhs > rhs;
+        case BinaryOperation::GreaterEqual:
+            return lhs >= rhs;
+        case BinaryOperation::Less:
+            return lhs < rhs;
+        case BinaryOperation::LessEqual:
+            return lhs <= rhs;
+        case BinaryOperation::NotEqual:
+            return lhs != rhs;
     }
     return 0;
 }
@@ -117,32 +138,67 @@ double calculateFloatOperation(Node::Ptr &first, Node::Ptr &second, BinaryOperat
                                                         : second->fpNum();
 
     switch (operation) {
-    case BinaryOperation::FAdd:
-        return lhs + rhs;
-    case BinaryOperation::FSub:
-        return lhs - rhs;
-    case BinaryOperation::FMult:
-        return lhs * rhs;
-    case BinaryOperation::FDiv:
-        return lhs / rhs;
-    case BinaryOperation::FEqual:
-        return lhs == rhs;
-    case BinaryOperation::FAnd:
-        return lhs && rhs;
-    case BinaryOperation::FOr:
-        return lhs || rhs;
-    case BinaryOperation::FGreater:
-        return lhs > rhs;
-    case BinaryOperation::FGreaterEqual:
-        return lhs >= rhs;
-    case BinaryOperation::FLess:
-        return lhs < rhs;
-    case BinaryOperation::FLessEqual:
-        return lhs <= rhs;
-    case BinaryOperation::FNotEqual:
-        return lhs != rhs;
+        case BinaryOperation::FAdd:
+            return lhs + rhs;
+        case BinaryOperation::FSub:
+            return lhs - rhs;
+        case BinaryOperation::FMult:
+            return lhs * rhs;
+        case BinaryOperation::FDiv:
+            return lhs / rhs;
+        case BinaryOperation::FEqual:
+            return lhs == rhs;
+        case BinaryOperation::FAnd:
+            return lhs && rhs;
+        case BinaryOperation::FOr:
+            return lhs || rhs;
+        case BinaryOperation::FGreater:
+            return lhs > rhs;
+        case BinaryOperation::FGreaterEqual:
+            return lhs >= rhs;
+        case BinaryOperation::FLess:
+            return lhs < rhs;
+        case BinaryOperation::FLessEqual:
+            return lhs <= rhs;
+        case BinaryOperation::FNotEqual:
+            return lhs != rhs;
     }
     return 0.0;
+}
+
+bool calculateBoolOperation(Node::Ptr &first, Node::Ptr &second, BinaryOperation operation, OptimizerContext &ctx) {
+    bool lhs = first->type == NodeType::VariableName ? std::get<bool>(ctx.findVariableValue(first->str()))
+                                                         : first->boolean();
+    bool rhs = second->type == NodeType::VariableName ? std::get<bool>(ctx.findVariableValue(second->str()))
+                                                          : second->boolean();
+
+    switch (operation) {
+        case BinaryOperation::Add:
+            return lhs + rhs;
+        case BinaryOperation::Sub:
+            return lhs - rhs;
+        case BinaryOperation::Mult:
+            return lhs * rhs;
+        case BinaryOperation::Div:
+            return lhs / rhs;
+        case BinaryOperation::Equal:
+            return lhs == rhs;
+        case BinaryOperation::And:
+            return lhs && rhs;
+        case BinaryOperation::Or:
+            return lhs || rhs;
+        case BinaryOperation::Greater:
+            return lhs > rhs;
+        case BinaryOperation::GreaterEqual:
+            return lhs >= rhs;
+        case BinaryOperation::Less:
+            return lhs < rhs;
+        case BinaryOperation::LessEqual:
+            return lhs <= rhs;
+        case BinaryOperation::NotEqual:
+            return lhs != rhs;
+    }
+    return true;
 }
 
 bool constantPropagation(Node::Ptr &first, Node::Ptr &second, OptimizerContext &ctx) {
@@ -158,6 +214,12 @@ bool constantPropagation(Node::Ptr &first, Node::Ptr &second, OptimizerContext &
     if (canBeConstantFloat(first, ctx) && canBeConstantFloat(second, ctx)) {
         parent->type = NodeType::FloatingPointLiteralValue;
         parent->value = calculateFloatOperation(first, second, parent->binOp(), ctx);
+        parent->children.clear();
+        return true;
+    }
+    if (canBeConstantBool(first, ctx) && canBeConstantBool(second, ctx)) {
+        parent->type = NodeType::BooleanLiteralValue;
+        parent->value = calculateBoolOperation(first, second, parent->binOp(), ctx);
         parent->children.clear();
         return true;
     }
@@ -205,6 +267,13 @@ bool constantFolding(Node::Ptr &first, Node::Ptr &second, OptimizerContext &ctx)
         parent->children.clear();
         return true;
     }
+    if (first->type == NodeType::BooleanLiteralValue && second->type == NodeType::BooleanLiteralValue) {
+        parent->type = NodeType::BooleanLiteralValue;
+        parent->value = calculateBoolOperation(first, second, parent->binOp(), ctx);
+        parent->children.clear();
+        return true;
+    }
+
     return false;
 }
 
@@ -213,17 +282,21 @@ void variablePropagation(Node::Ptr &node, OptimizerContext &ctx) {
     if (!ctx.hasVariable(varName))
         return;
     auto variableIter = ctx.findVariableValue(varName);
-    if (ctx.findVariable(node).type == BuiltInTypes::FloatType) {
+    auto variableType = ctx.findVariable(node).type;
+    if (variableType == BuiltInTypes::FloatType) {
         node->type = NodeType::FloatingPointLiteralValue;
         node->value = std::get<double>(variableIter);
-    } else {
+    } else if (variableType == BuiltInTypes::IntType) {
         node->type = NodeType::IntegerLiteralValue;
         node->value = std::get<long int>(variableIter);
+    } else if (variableType ==  BuiltInTypes::BoolType) {
+        node->type = NodeType::BooleanLiteralValue;
+        node->value = std::get<bool>(variableIter);
     }
 }
 
 void pushVariableAttribute(Node::Ptr &node, Node::Ptr &child, OptimizerContext &ctx) {
-    TypeId type;
+    TypeId type = BuiltInTypes::BuiltInTypesCount;
     auto parent = node->parent;
     for (auto &iter : parent->children) {
         if (iter->type == NodeType::TypeName) {
@@ -236,8 +309,24 @@ void pushVariableAttribute(Node::Ptr &node, Node::Ptr &child, OptimizerContext &
                 ctx.values.front().emplace(varName, child->intNum()); // fix
             else if (type == BuiltInTypes::FloatType)
                 ctx.values.front().emplace(varName, child->fpNum());
+            else if (type == BuiltInTypes::BoolType)
+                ctx.values.front().emplace(varName, child->boolean());
         }
     }
+}
+
+void pushVariableValue(Node::Ptr &variableNameNode, Node::Ptr &literalValue,
+                       Node::Ptr &expressionNode, OptimizerContext &ctx)
+{
+    auto expressionType = expressionNode->typeId();
+
+    const std::string &varName = variableNameNode->str();
+    if (expressionType == BuiltInTypes::IntType)
+        ctx.values.front()[varName] = literalValue->intNum();
+    else if (expressionType == BuiltInTypes::FloatType)
+        ctx.values.front()[varName] = literalValue->fpNum();
+    else if (expressionType == BuiltInTypes::BoolType)
+        ctx.values.front()[varName] = literalValue->boolean();
 }
 
 void processExpression(Node::Ptr &node, OptimizerContext &ctx);
@@ -246,29 +335,32 @@ void copyExpression(const Node::Ptr &node, Node::Ptr &newExpr, std::unordered_ma
     for (const auto &child : node->children) {
         auto type = child->type;
         switch (type) {
-        case NodeType::BinaryOperation:
-            newExpr->children.emplace_back(new Node(child->binOp(), newExpr));
-            copyExpression(child, newExpr->children.back(), map);
-            break;
-        case NodeType::TypeConversion:
-            newExpr->children.emplace_back(new Node(NodeType::TypeConversion, newExpr));
-            copyExpression(child, newExpr->children.back(), map);
-            break;
-        case NodeType::IntegerLiteralValue:
-            newExpr->children.emplace_back(new Node(child->intNum(), newExpr));
-            break;
-        case NodeType::FloatingPointLiteralValue:
-            newExpr->children.emplace_back(new Node(child->fpNum(), newExpr));
-            break;
-        case NodeType::VariableName:
-            newExpr->children.emplace_back(map[child->str()]);
-            newExpr->children.back()->parent = newExpr;
-            break;
-        case NodeType::TypeName:
-            newExpr->children.emplace_back(new Node(child->typeId(), newExpr));
-            break;
-        default:
-            break;
+            case NodeType::BinaryOperation:
+                newExpr->children.emplace_back(new Node(child->binOp(), newExpr));
+                copyExpression(child, newExpr->children.back(), map);
+                break;
+            case NodeType::TypeConversion:
+                newExpr->children.emplace_back(new Node(NodeType::TypeConversion, newExpr));
+                copyExpression(child, newExpr->children.back(), map);
+                break;
+            case NodeType::IntegerLiteralValue:
+                newExpr->children.emplace_back(new Node(child->intNum(), newExpr));
+                break;
+            case NodeType::FloatingPointLiteralValue:
+                newExpr->children.emplace_back(new Node(child->fpNum(), newExpr));
+                break;
+            case NodeType::BooleanLiteralValue:
+                newExpr->children.emplace_back(new Node(child->boolean(), newExpr));
+                break;
+            case NodeType::VariableName:
+                newExpr->children.emplace_back(map[child->str()]);
+                newExpr->children.back()->parent = newExpr;
+                break;
+            case NodeType::TypeName:
+                newExpr->children.emplace_back(new Node(child->typeId(), newExpr));
+                break;
+            default:
+                break;
         }
     }
 }
@@ -348,6 +440,17 @@ bool processBinaryOperation(Node::Ptr &node, OptimizerContext &ctx) {
     return haveFunctionCall;
 }
 
+void changeVariablesAttributes(Node::Ptr &node, OptimizerContext &ctx) {
+    for (auto &child : node->children) {
+        if (child->type == NodeType::Expression) {
+            auto &exprNode = child->firstChild();
+            if (isAssignment(exprNode)) {
+                ctx.findVariable(exprNode->firstChild()).attributes.modified = true;
+            }
+        }
+    }
+}
+
 void processExpression(Node::Ptr &node, OptimizerContext &ctx) {
     for (auto &child : node->children) {
         if (child->type == NodeType::BinaryOperation) {
@@ -375,6 +478,9 @@ void processExpression(Node::Ptr &node, OptimizerContext &ctx) {
                 isNotModifiedExpr = constantPropagation(first, second, ctx);
             if (isConsExpr || isNotModifiedExpr) {
                 pushVariableAttribute(node, child, ctx);
+            }
+            if (first->type == NodeType::VariableName && isLiteral(second) && isAssignment(child)) {
+                pushVariableValue(first, second, node, ctx);
             }
             if (first->type == NodeType::FunctionCall) {
                 ctx.functions.find(first->firstChild()->str())->second.useCount++;
@@ -419,23 +525,17 @@ void processExpression(Node::Ptr &node, OptimizerContext &ctx) {
             continue;
         }
 
+        if (isBooleanLiteral(child)) {
+            pushVariableAttribute(node, child, ctx);
+            continue;
+        }
+
         if (isNonModifiedVariable(child, ctx)) {
             variablePropagation(child, ctx);
             continue;
         }
 
         processExpression(child, ctx);
-    }
-}
-
-void changeVariablesAttributes(Node::Ptr &node, OptimizerContext &ctx) {
-    for (auto &child : node->children) {
-        if (child->type == NodeType::Expression) {
-            auto &exprNode = child->firstChild();
-            if (isAssignment(exprNode)) {
-                ctx.findVariable(exprNode->firstChild()).attributes.modified = true;
-            }
-        }
     }
 }
 
@@ -475,7 +575,7 @@ void processBranchRoot(Node::Ptr &node, OptimizerContext &ctx) {
         if (child->type == NodeType::IfStatement) {
             processExpression(child->firstChild(), ctx);
             auto &exprResult = child->firstChild()->firstChild();
-            if (isNumericLiteral(exprResult)) {
+            if (isConstantLiteral(exprResult)) {
                 child->children.pop_front();
                 if (isTruthyLiteral(exprResult)) {
                     processBranchRoot(child->children.front(), ctx);
@@ -491,7 +591,7 @@ void processBranchRoot(Node::Ptr &node, OptimizerContext &ctx) {
                             break;
                         }
                         auto &ifExprResult = ifChild->firstChild()->firstChild();
-                        if (isNumericLiteral(ifExprResult)) {
+                        if (isTruthyLiteral(ifExprResult)) {
                             ifChild->children.pop_front();
                             if (isTruthyLiteral(ifExprResult)) {
                                 child = ifChild->children.front();

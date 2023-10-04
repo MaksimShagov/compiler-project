@@ -87,6 +87,8 @@ struct Node {
         : type(NodeType::IntegerLiteralValue), value(intNum_), parent(parent_){};
     explicit Node(double fpNum_, Ptr parent_ = Ptr())
         : type(NodeType::FloatingPointLiteralValue), value(fpNum_), parent(parent_){};
+    explicit Node(bool boolean_, Ptr parent_ = Ptr())
+        : type(NodeType::BooleanLiteralValue), value(boolean_), parent(parent_){};
     Node(const NodeType &type_, const std::string &str_, Ptr parent_ = Ptr())
         : type(type_), value(str_), parent(parent_){};
     explicit Node(TypeId typeId_, Ptr parent_ = Ptr()) : type(NodeType::TypeName), value(typeId_), parent(parent_){};
