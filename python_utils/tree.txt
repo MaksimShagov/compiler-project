@@ -1,0 +1,34 @@
+ProgramRoot
+  FunctionDefinition
+    FunctionName: main
+    FunctionArguments
+    FunctionReturnType: NoneType
+    BranchRoot: x:BoolType y:BoolType
+      VariableDeclaration
+        TypeName: BoolType
+        VariableName: x
+        Expression: BoolType
+          BooleanLiteralValue: True
+      VariableDeclaration
+        TypeName: BoolType
+        VariableName: y
+        Expression: BoolType
+          BooleanLiteralValue: False
+      Expression: BoolType
+        BinaryOperation: Assign
+          VariableName: x
+          BooleanLiteralValue: False
+      Expression: BoolType
+        BinaryOperation: Assign
+          VariableName: y
+          BooleanLiteralValue: True
+      BranchRoot: z:BoolType
+        VariableDeclaration
+          TypeName: BoolType
+          VariableName: z
+          Expression: BoolType
+            BooleanLiteralValue: False
+        Expression: BoolType
+          BinaryOperation: Assign
+            VariableName: z
+            BooleanLiteralValue: True
