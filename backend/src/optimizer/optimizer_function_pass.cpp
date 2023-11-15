@@ -5,8 +5,6 @@
 using namespace ast;
 using namespace optimizer;
 
-FunctionPass::FunctionPass(const PassesDict::PassesAggregation &desc): functionRootPasses{desc} {}
-
 void FunctionPass::procces(ast::Node::Ptr &node, OptimizerContext &ctx) {
 
     this->compute(node, ctx);
@@ -16,7 +14,7 @@ void FunctionPass::procces(ast::Node::Ptr &node, OptimizerContext &ctx) {
 
 std::shared_ptr<PassStatistic> FunctionPass::statistic() {
 
-    return collected_statistic;
+    return collectedStatistic;
 
 }
 
@@ -27,12 +25,14 @@ void FunctionPass::compute(ast::Node::Ptr &node, OptimizerContext &ctx) {
 
     for (auto &function : node->children) {
         if (function->type == NodeType::FunctionDefinition &&
-            functionRootPasses.find(NodeType::FunctionDefinition) != functionRootPasses.end()) {
+            passesAggregator.find(NodeType::BranchRoot) != passesAggregator.end()) {
             auto function_attributes = function->children.begin();
             std::advance(function_attributes, 3); // BranchRoot
-            for (auto &pass: functionRootPasses[NodeType::FunctionDefinition]) {
+            ctx.startScope();
+            for (auto &pass: passesAggregator[NodeType::BranchRoot]) {
                 pass->procces(*function_attributes, ctx);
             }
+            ctx.endScope();
         }
     }
 }

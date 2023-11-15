@@ -4,15 +4,13 @@
 #include <ast/syntax_tree.hpp>
 
 #include "backend/optimizer/optimizer_base_pass.hpp"
-#include "backend/optimizer/optimizer_passes_dict.hpp"
+#include "backend/optimizer/optimizer_base_aggregator_pass.hpp"
+
 namespace optimizer {
 
-    class FunctionPass: public BasePass
+    class FunctionPass: public BaseAggregationPass
     {
-        PassesDict::PassesAggregation functionRootPasses;
     public:
-        FunctionPass(const PassesDict::PassesAggregation &desc);
-
         virtual void procces(ast::Node::Ptr &node, OptimizerContext &ctx) override;
         virtual std::shared_ptr<PassStatistic> statistic() override;
     protected:

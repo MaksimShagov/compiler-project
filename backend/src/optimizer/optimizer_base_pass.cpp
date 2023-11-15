@@ -14,6 +14,6 @@ void BasePass::procces(ast::Node::Ptr &node, OptimizerContext &ctx) {
 
 std::shared_ptr<PassStatistic> BasePass::statistic() {
 
-    return collected_statistic;
+    return collectedStatistic;
 
 }

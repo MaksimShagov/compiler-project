@@ -18,7 +18,7 @@ namespace optimizer {
         virtual std::shared_ptr<PassStatistic> statistic() override;
     protected:
         virtual void compute(ast::Node::Ptr &node, OptimizerContext &ctx) = 0;
-        std::shared_ptr<PassStatistic> collected_statistic;
+        std::shared_ptr<PassStatistic> collectedStatistic;
     };
 
 } // namespace optimizer

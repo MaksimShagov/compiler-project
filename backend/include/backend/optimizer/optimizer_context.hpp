@@ -59,6 +59,14 @@ struct OptimizerContext {
 
         return false;
     }
+
+    void startScope() {
+        values.emplace_front();
+    };
+
+    void endScope() {
+        values.pop_front();
+    };
 };
 
 } // namespace optimizer
