@@ -5,11 +5,13 @@
 using namespace ast;
 using namespace optimizer;
 
-void BaseAggregationPass::procces(ast::Node::Ptr &node, OptimizerContext &ctx) {
+bool BaseAggregationPass::procces(ast::Node::Ptr &node, OptimizerContext &ctx) {
 
-    this->compute(node, ctx);
+    bool optimized = this->compute(node, ctx);
 
     // statistic calculaton logic
+
+    return optimized;
 }
 
 std::shared_ptr<PassStatistic> BaseAggregationPass::statistic() {
@@ -22,7 +24,7 @@ void BaseAggregationPass::addPass(const BaseAggregationPass::PassDescription &de
     if (passesAggregator.find(desc.first) == passesAggregator.end()) {
         passesAggregator.emplace(
             desc.first,
-            std::vector<BasePass*>{desc.second}
+            std::vector<BasePassPtr>{desc.second}
         );
 
     } else {

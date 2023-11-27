@@ -16,15 +16,15 @@
 namespace optimizer {
 
     class OptimizerConfig {
-        BasePass* finalPass;
-        BaseAggregationPass::PassesAggregation aggregator;
+        BasePassPtr finalPass;
+        std::map<std::string, BaseAggregationPassPtr> aggregator;
     public:
         OptimizerConfig(const std::string &config_path);
 
-        BasePass* getPasses();
+        BasePassPtr getPasses();
 
     private:
-        BasePass* getPassByName(const std::string &passName);
+        BasePassPtr getPassByName(const std::string &passName);
         ast::NodeType getNodeTypeByName(const std::string &passName);
         bool isAggregatablePass(const std::string &passName);
     };

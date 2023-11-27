@@ -14,13 +14,14 @@ namespace optimizer {
         BasePass() = default;
         ~BasePass() = default;
 
-        virtual void procces(ast::Node::Ptr &node, OptimizerContext &ctx) override;
+        virtual bool procces(ast::Node::Ptr &node, OptimizerContext &ctx) override;
         virtual std::shared_ptr<PassStatistic> statistic() override;
     protected:
-        virtual void compute(ast::Node::Ptr &node, OptimizerContext &ctx) = 0;
+        virtual bool compute(ast::Node::Ptr &node, OptimizerContext &ctx) = 0;
         std::shared_ptr<PassStatistic> collectedStatistic;
     };
 
+    using BasePassPtr = std::shared_ptr<BasePass>;
 } // namespace optimizer
 
 

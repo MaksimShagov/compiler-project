@@ -12,7 +12,7 @@ namespace optimizer {
 
     class IAbstractPass {
     public:
-        virtual void procces(ast::Node::Ptr &node, OptimizerContext &ctx) = 0;
+        virtual bool procces(ast::Node::Ptr &node, OptimizerContext &ctx) = 0;
         virtual std::shared_ptr<PassStatistic> statistic() = 0;
     };
 

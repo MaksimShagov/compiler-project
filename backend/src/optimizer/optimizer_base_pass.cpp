@@ -5,11 +5,13 @@
 using namespace ast;
 using namespace optimizer;
 
-void BasePass::procces(ast::Node::Ptr &node, OptimizerContext &ctx) {
+bool BasePass::procces(ast::Node::Ptr &node, OptimizerContext &ctx) {
 
-    this->compute(node, ctx);
+    bool optimized = this->compute(node, ctx);
 
     // statistic calculaton logic
+
+    return optimized;
 }
 
 std::shared_ptr<PassStatistic> BasePass::statistic() {

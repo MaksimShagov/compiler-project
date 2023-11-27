@@ -5,12 +5,6 @@
 using namespace ast;
 using namespace optimizer;
 
-void FunctionPass::procces(ast::Node::Ptr &node, OptimizerContext &ctx) {
-
-    this->compute(node, ctx);
-
-    // statistic calculaton logic
-}
 
 std::shared_ptr<PassStatistic> FunctionPass::statistic() {
 
@@ -18,7 +12,7 @@ std::shared_ptr<PassStatistic> FunctionPass::statistic() {
 
 }
 
-void FunctionPass::compute(ast::Node::Ptr &node, OptimizerContext &ctx) {
+bool FunctionPass::compute(ast::Node::Ptr &node, OptimizerContext &ctx) {
     if (node->type != NodeType::ProgramRoot) {
         throw std::logic_error("ERROR: exepted ProgrammRoot node in FunctionPass");
     }
@@ -28,11 +22,12 @@ void FunctionPass::compute(ast::Node::Ptr &node, OptimizerContext &ctx) {
             passesAggregator.find(NodeType::BranchRoot) != passesAggregator.end()) {
             auto function_attributes = function->children.begin();
             std::advance(function_attributes, 3); // BranchRoot
-            ctx.startScope();
+            ctx.startScope(*function_attributes);
             for (auto &pass: passesAggregator[NodeType::BranchRoot]) {
                 pass->procces(*function_attributes, ctx);
             }
             ctx.endScope();
         }
     }
+    return false;
 }

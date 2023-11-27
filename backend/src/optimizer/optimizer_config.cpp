@@ -1,4 +1,5 @@
 #include <iostream>
+#include <memory>
 #include <rapidjson/document.h>
 
 #include "optimizer/optimizer_config.hpp"
@@ -22,58 +23,55 @@ OptimizerConfig::OptimizerConfig(const std::string &config_path) {
     }
     document.Parse(tree_string.c_str());
 
-    // BaseAggregationPass::PassesAggregation aggregator;
     for (auto& m : document.GetObject()) {
         auto &array = document[m.name.GetString()];
         auto parentPassName = std::string(m.name.GetString());
         auto parentNodeType = getNodeTypeByName(parentPassName);
-        auto pass = getPassByName(parentPassName);
+        auto pass = std::static_pointer_cast<BaseAggregationPass>(getPassByName(parentPassName));
 
         for (int i = 0; i < array.Size(); i++) {
             auto passName = std::string(array[i].GetString());
             auto nodeType = getNodeTypeByName(passName);
-            if (aggregator.find(nodeType) == aggregator.end()) {
-                aggregator.emplace(
-                    nodeType,
-                    std::vector<BasePass*>{getPassByName(passName)}
-                );
+            auto proccesed_pass = aggregator.find(passName);
+            if (aggregator.find(passName) != aggregator.end()) {
+                pass->addPass({
+                    nodeType, 
+                    std::static_pointer_cast<BaseAggregationPass>(proccesed_pass->second)
+                });
             } else {
-                aggregator[nodeType].push_back(getPassByName(passName));
+                pass->addPass({nodeType, getPassByName(passName)});
             }
         }
-        if (aggregator.find(parentNodeType) == aggregator.end()) {
-                aggregator.emplace(
-                    parentNodeType,
-                    std::vector<BasePass*>{getPassByName(parentPassName)}
-                );
-            } else {
-                aggregator[parentNodeType].push_back(getPassByName(parentPassName));
-            }
+        aggregator.emplace(parentPassName, pass);
     }
+    finalPass = aggregator["FunctionPass"];
 }
 
 
-BasePass* OptimizerConfig::getPassByName(const std::string &passName) {
+BasePassPtr OptimizerConfig::getPassByName(const std::string &passName) {
     if (passName == "FunctionPass") {
-        return new FunctionPass();
+        return std::make_shared<FunctionPass>();
     }
     else if (passName == "BranchRootPass") {
-        return new BranchRootPass();
+        return std::make_shared<BranchRootPass>();
     }
     else if (passName == "VariableDefenitonPass") {
-        return new VariableDefenitonPass();
+        return std::make_shared<VariableDefenitonPass>();
     }
     else if (passName == "ExpressionPass") {
-        return new ExpressionPass();
+        return std::make_shared<ExpressionPass>();
     }
     else if (passName == "BinaryOperatorPass") {
-        return new BinaryOperatorPass();
+        return std::make_shared<BinaryOperatorPass>();
     }
     else if (passName == "ConstantPropagationPass") {
-        return new ConstantPropagationPass();
+        return std::make_shared<ConstantPropagationPass>();
     }
     else if (passName == "ConstantFoldingPass") {
-        return new ConstantFoldingPass();
+        return std::make_shared<ConstantFoldingPass>();
+    }
+    else if (passName == "TypeConversionPass") {
+        return std::make_shared<TypeConversionPass>();
     }
 }
 
@@ -100,23 +98,13 @@ ast::NodeType OptimizerConfig::getNodeTypeByName(const std::string &passName) {
     else if (passName == "ConstantFoldingPass") {
         return NodeType::BinaryOperation;
     }
-}
-
-
-bool OptimizerConfig::isAggregatablePass(const std::string &passName) {
-    if (passName == "FunctionPass" ||
-        passName == "BranchRootPass" ||
-        passName == "VariableDefenitonPass" ||
-        passName == "BinaryOperatorPass" ||
-        passName == "ExpressionPass"
-    ) {
-        return true;
+    else if (passName == "TypeConversionPass") {
+        return NodeType::BinaryOperation;
     }
-    return false;
 }
 
 
-BasePass* OptimizerConfig::getPasses() {
+BasePassPtr OptimizerConfig::getPasses() {
 
-    return aggregator[NodeType::FunctionDefinition].front();
+    return finalPass;
 }

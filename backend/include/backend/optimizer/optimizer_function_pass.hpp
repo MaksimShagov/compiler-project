@@ -11,10 +11,9 @@ namespace optimizer {
     class FunctionPass: public BaseAggregationPass
     {
     public:
-        virtual void procces(ast::Node::Ptr &node, OptimizerContext &ctx) override;
         virtual std::shared_ptr<PassStatistic> statistic() override;
     protected:
-        virtual void compute(ast::Node::Ptr &node, OptimizerContext &ctx) override;
+        virtual bool compute(ast::Node::Ptr &node, OptimizerContext &ctx) override;
     };
 
 } // namespace optimizer
