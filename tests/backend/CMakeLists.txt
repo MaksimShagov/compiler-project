@@ -8,8 +8,12 @@ file(GLOB_RECURSE TARGET_SRC
 
 add_executable(${TARGET_NAME} ${TARGET_SRC})
 
-target_include_directories(${TARGET_NAME} PUBLIC
+set(RAPIDJSON_INCLUDE_DIR ${CMAKE_HOME_DIRECTORY}/thirdparty/rapidjson/include/)
+
+target_include_directories(${TARGET_NAME} 
+PUBLIC
     ${CMAKE_SOURCE_DIR}/backend/include
+    ${RAPIDJSON_INCLUDE_DIR}
 )
 
 target_link_libraries(${TARGET_NAME} PUBLIC

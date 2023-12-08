@@ -59,6 +59,16 @@ struct OptimizerContext {
 
         return false;
     }
+
+    void startScope(const ast::Node::Ptr &node) {
+        variables.push_front(&node->variables());
+        values.emplace_front();
+    };
+
+    void endScope() {
+        variables.pop_front();
+        values.pop_front();
+    };
 };
 
 } // namespace optimizer
